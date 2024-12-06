@@ -58,6 +58,6 @@ Add multi-factor authentication for user ID verification.
 Extend admin controls to manage user roles dynamically.
 Enhance UI for a better user experience.
 Contributors
-Iriho Japhet
+Iriho Japhet, 
 Nyishimente Lois
  
