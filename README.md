@@ -27,8 +27,37 @@ Ensure you have the following installed:
 - [dfx SDK](https://internetcomputer.org/docs/current/developer-docs/setup/install/)
 - [Git](https://git-scm.com/)
 
+
 ### Steps
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/irihojeff/voting-app.git
+     git clone https://github.com/irihojeff/voting-app.git
    cd voting-app
+3. Install dependencies:
+
+npm install
+
+3.Start the Internet Computer local replica:
+
+dfx start
+
+4.Deploy the backend canisters:
+
+dfx deploy
+
+Run the frontend:
+
+npm start
+Demo
+(https://drive.google.com/file/d/1UpMsDVePjU3vgGOsRpITRj51qBd3m0FW/view?usp=sharing)
+
+Challenges Faced
+Initial bugs in vote counting logic.
+Tight deadlines for UI enhancements and Git integration.
+Future Scope
+Add multi-factor authentication for user ID verification.
+Extend admin controls to manage user roles dynamically.
+Enhance UI for a better user experience.
+Contributors
+Iriho Japhet
+Nyishimente Lois
+ 
