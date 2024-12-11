@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { voting_app_backend } from 'declarations/voting_app_backend';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
@@ -7,101 +7,206 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 function App() {
+  // State Management
   const [votes, setVotes] = useState([]);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [userId, setUserId] = useState('');
   const [candidate, setCandidate] = useState('');
+  const [newCandidate, setNewCandidate] = useState('');
   const [voteCounts, setVoteCounts] = useState([]);
   const [votingOpen, setVotingOpen] = useState(true);
+  const [candidates, setCandidates] = useState([]);
+  const [isLoading, setIsLoading] = useState({
+    votes: true,
+    voteCounts: true,
+    candidates: true,
+    votingStatus: true
+  });
 
+  // Initial Setup and Data Fetching
   useEffect(() => {
+    async function initializeApp() {
+      try {
+        setIsLoading(prev => ({ ...prev, candidates: true }));
+        await refreshCandidates();
+        
+        setIsLoading(prev => ({ ...prev, votes: true }));
+        await refreshVotes();
+        
+        setIsLoading(prev => ({ ...prev, voteCounts: true }));
+        await refreshVoteCounts();
+        
+        setIsLoading(prev => ({ ...prev, votingStatus: true }));
+        await checkVotingStatus();
+      } catch (error) {
+        console.error("Initialization error:", error);
+        setMessage({ 
+          text: 'Failed to initialize the app. Please refresh.', 
+          type: 'error' 
+        });
+      } finally {
+        setIsLoading({
+          votes: false,
+          voteCounts: false,
+          candidates: false,
+          votingStatus: false
+        });
+      }
+    }
+
+    initializeApp();
+  }, []);
+
+  // Candidate Management
+  function handleAddCandidate(event) {
+    event.preventDefault();
+    if (!newCandidate) {
+      setMessage({ text: 'Please enter a candidate name', type: 'error' });
+      return;
+    }
+
+    voting_app_backend.addCandidate(newCandidate)
+      .then((msg) => {
+        setMessage({ text: msg, type: 'success' });
+        setNewCandidate('');
+        return refreshCandidates();
+      })
+      .catch((error) => {
+        console.error("Add candidate error:", error);
+        setMessage({ 
+          text: 'Failed to add candidate. Ensure the name is unique.', 
+          type: 'error' 
+        });
+      });
+  }
+
+  // Refresh Candidates
+  async function refreshCandidates() {
     try {
-      refreshVotes();
-      refreshVoteCounts();
-      
-      // Fallback method if isVotingOpen is not available
-      if (voting_app_backend.isVotingOpen) {
+      const candidateList = await voting_app_backend.getAllCandidates();
+      setCandidates(candidateList);
+    } catch (error) {
+      console.error("Error fetching candidates:", error);
+      setMessage({ 
+        text: 'Could not retrieve candidate list', 
+        type: 'error' 
+      });
+    }
+  }
+
+  // Vote Casting
+  function handleCastVote(event) {
+    event.preventDefault();
+    
+    // Validation
+    if (!userId) {
+      setMessage({ text: 'Please enter a User ID', type: 'error' });
+      return;
+    }
+    if (!candidate) {
+      setMessage({ text: 'Please select a candidate', type: 'error' });
+      return;
+    }
+
+    voting_app_backend.castVote(userId, candidate)
+      .then((msg) => {
+        if (msg.includes('already voted')) {
+          setMessage({ text: msg, type: 'error' });
+        } else if (msg.includes('Invalid candidate')) {
+          setMessage({ text: 'Please choose a valid candidate', type: 'error' });
+        } else {
+          setMessage({ text: msg, type: 'success' });
+          setUserId('');
+          setCandidate('');
+          
+          // Refresh data after successful vote
+          Promise.all([
+            refreshVotes(),
+            refreshVoteCounts()
+          ]);
+        }
+      })
+      .catch((error) => {
+        console.error("Vote casting error:", error);
+        setMessage({ 
+          text: 'Failed to cast vote. Please try again.', 
+          type: 'error' 
+        });
+      });
+  }
+
+  // Voting Status Management
+  function handleCloseVoting() {
+    voting_app_backend.closeVoting()
+      .then((msg) => {
+        setMessage({ text: msg, type: 'success' });
         checkVotingStatus();
+      })
+      .catch((error) => {
+        console.error("Close voting error:", error);
+        setMessage({ 
+          text: 'Failed to close voting', 
+          type: 'error' 
+        });
+      });
+  }
+
+  function handleReopenVoting() {
+    voting_app_backend.reopenVoting()
+      .then((msg) => {
+        setMessage({ text: msg, type: 'success' });
+        checkVotingStatus();
+      })
+      .catch((error) => {
+        console.error("Reopen voting error:", error);
+        setMessage({ 
+          text: 'Failed to reopen voting', 
+          type: 'error' 
+        });
+      });
+  }
+
+  // Check Voting Status
+  async function checkVotingStatus() {
+    try {
+      if (voting_app_backend.isVotingOpen) {
+        const status = await voting_app_backend.isVotingOpen();
+        setVotingOpen(status);
       } else {
         console.warn("isVotingOpen method not found, defaulting to open");
         setVotingOpen(true);
       }
     } catch (error) {
-      console.error("Error in initial setup:", error);
+      console.error("Voting status check error:", error);
       setVotingOpen(true);
     }
-  }, []);
-
-  function handleCastVote(event) {
-    event.preventDefault();
-    if (!userId || !candidate) {
-      setMessage({ text: 'Please provide both user ID and candidate.', type: 'error' });
-      return;
-    }
-
-    voting_app_backend.castVote(userId, candidate).then((msg) => {
-      if (msg.includes('already voted')) {
-        setMessage({ text: msg, type: 'error' });
-      } else {
-        setMessage({ text: msg, type: 'success' });
-        refreshVotes();
-        refreshVoteCounts();
-        setUserId('');
-        setCandidate('');
-      }
-    });
   }
 
-  function handleCloseVoting() {
-    voting_app_backend.closeVoting().then((msg) => {
-      setMessage({ text: msg, type: 'success' });
-      checkVotingStatus();
-    });
+  // Data Refresh Functions
+  // Modify the vote counts conversion
+async function refreshVoteCounts() {
+  try {
+    const counts = await voting_app_backend.getVoteCount();
+    const formattedCounts = counts.map(([candidate, count]) => [
+      candidate.toString(), // Ensure candidate is a string
+      Number(count.toString()) // Convert BigInt to number
+    ]);
+    setVoteCounts(formattedCounts);
+  } catch (error) {
+    console.error("Vote count refresh error:", error);
   }
+}
 
-  function handleReopenVoting() {
-    voting_app_backend.reopenVoting().then((msg) => {
-      setMessage({ text: msg, type: 'success' });
-      checkVotingStatus(); // Refresh the voting status
-    }).catch((error) => {
-      console.error("Error reopening voting:", error);
-      setMessage({ text: "Failed to reopen voting.", type: 'error' });
-    });
-  }
-
-  function checkVotingStatus() {
-    if (voting_app_backend.isVotingOpen) {
-      voting_app_backend.isVotingOpen().then(
-        (status) => setVotingOpen(status),
-        (error) => {
-          console.error("Error checking voting status:", error);
-          setVotingOpen(true); // Default to open if check fails
-        }
-      );
-    } else {
-      console.error("isVotingOpen method not found in backend");
-      setVotingOpen(true); // Default to open if method is missing
+  async function refreshVotes() {
+    try {
+      const allVotes = await voting_app_backend.getAllVotes();
+      setVotes(allVotes);
+    } catch (error) {
+      console.error("Votes refresh error:", error);
     }
   }
 
-  function refreshVoteCounts() {
-    voting_app_backend.getVoteCount().then((counts) => {
-      console.log("Raw Vote Counts:", counts);
-
-      // Transform counts to expected format if necessary
-      const formattedCounts = counts.map(([candidate, count]) => [
-        candidate.toString(),
-        Number(count),
-      ]);
-      setVoteCounts(formattedCounts);
-    });
-  }
-
-  function refreshVotes() {
-    voting_app_backend.getAllVotes().then(setVotes);
-  }
-
-  // Chart Data for Bar Chart
+  // Chart Configuration
   const chartData = {
     labels: voteCounts.map(([candidate]) => candidate),
     datasets: [
@@ -126,83 +231,174 @@ function App() {
   };
 
   return (
-    <main>
-      <h1>Decentralized Voting App</h1>
+    <main className="voting-app-container">
+      <h1>Decentralized Voting Platform</h1>
 
       {/* Admin Controls */}
-      <div className="admin-controls">
-        <button onClick={handleCloseVoting} disabled={!votingOpen} className="primary">
-          Close Voting
-        </button>
-        <p>Voting Status: {votingOpen ? "Open" : "Closed"}</p>
-       
-        <button onClick={handleReopenVoting} disabled={votingOpen} className="primary">
-          Reopen Voting
-        </button>
-      </div>
+      <section className="admin-controls">
+        <div className="voting-status">
+          <h2>Voting Management</h2>
+          <p>Current Status: {votingOpen ? "🟢 Open" : "🔴 Closed"}</p>
+          
+          <div className="control-buttons">
+            <button 
+              onClick={handleCloseVoting} 
+              disabled={!votingOpen}
+              className="btn btn-danger"
+            >
+              Close Voting
+            </button>
+            <button 
+              onClick={handleReopenVoting} 
+              disabled={votingOpen}
+              className="btn btn-success"
+            >
+              Reopen Voting
+            </button>
+          </div>
+        </div>
 
-      {/* Cast Vote Form */}
-      <form onSubmit={handleCastVote} className="cast-vote" style={{ opacity: votingOpen ? 1 : 0.6 }}>
+        {/* Candidate Management */}
+        <div className="candidate-management">
+          <h2>Candidate Registration</h2>
+          <form onSubmit={handleAddCandidate}>
+            <input
+              type="text"
+              value={newCandidate}
+              onChange={(e) => setNewCandidate(e.target.value)}
+              placeholder="Enter new candidate name"
+              required
+            />
+            <button type="submit" className="btn btn-primary">
+              Add Candidate
+            </button>
+          </form>
+
+          <div className="candidate-list">
+            <h3>Registered Candidates</h3>
+            {isLoading.candidates ? (
+              <p>Loading candidates...</p>
+            ) : candidates.length === 0 ? (
+              <p>No candidates registered yet</p>
+            ) : (
+              <ul>
+                {candidates.map((candidate) => (
+                  <li key={candidate}>{candidate}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Vote Casting Section */}
+      <section className="vote-casting">
         <h2>Cast Your Vote</h2>
-        <label>User ID:</label>
-        <input
-          id="userId"
-          type="text"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          required
-          placeholder="Enter your unique ID"
-          disabled={!votingOpen}
-        />
-        <br />
-        <label>Candidate:</label>
-        <input
-          id="candidate"
-          type="text"
-          value={candidate}
-          onChange={(e) => setCandidate(e.target.value)}
-          required
-          placeholder="Type the candidate's name"
-          disabled={!votingOpen}
-        />
-        <br />
-        <button type="submit" disabled={!votingOpen}>
-          Cast Vote
-        </button>
-      </form>
+        <form 
+          onSubmit={handleCastVote} 
+          style={{ opacity: votingOpen ? 1 : 0.5 }}
+        >
+          <div className="form-group">
+            <label htmlFor="userId">User ID:</label>
+            <input
+              id="userId"
+              type="text"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              placeholder="Enter your unique ID"
+              required
+              disabled={!votingOpen}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="candidate">Candidate:</label>
+            <select
+              id="candidate"
+              value={candidate}
+              onChange={(e) => setCandidate(e.target.value)}
+              required
+              disabled={!votingOpen}
+            >
+              <option value="">Select a Candidate</option>
+              {candidates.map((candidateName) => (
+                <option key={candidateName} value={candidateName}>
+                  {candidateName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={!votingOpen}
+            className="btn btn-primary"
+          >
+            Cast Vote
+          </button>
+        </form>
+      </section>
 
       {/* Message Display */}
-      {message.text && <p className={`message ${message.type}`}>{message.text}</p>}
+      {message.text && (
+        <div className={`message ${message.type}`}>
+          {message.text}
+        </div>
+      )}
 
-      {/* List Votes */}
-      <h2>All Votes</h2>
-      <ul>
-        {votes.map(([userId, vote]) => (
-          <li key={userId}>
-            <h3>User: {userId}</h3>
-            <p>Voted for: {vote.candidate}</p>
-            <p>Timestamp: {new Date(Number(vote.timestamp) / 1_000_000).toLocaleString()}</p>
-          </li>
-        ))}
-      </ul>
+      {/* Votes List */}
+      <section className="votes-list">
+        <h2>Voting History</h2>
+        {isLoading.votes ? (
+          <p>Loading votes...</p>
+        ) : votes.length === 0 ? (
+          <p>No votes cast yet</p>
+        ) : (
+          <ul>
+           {votes.map(([userId, vote]) => (
+  <li key={userId}>
+    <strong>User:</strong> {userId}
+    <p><strong>Candidate:</strong> {vote.candidate}</p>
+    <p>
+      <strong>Timestamp:</strong> {
+        vote.timestamp && vote.timestamp !== BigInt(0) 
+        ? new Date(Number(vote.timestamp / BigInt(1_000_000))).toLocaleString() 
+        : 'Invalid timestamp'
+      }
+    </p>
+  </li>
+))}
+          </ul>
+        )}
+      </section>
 
       {/* Vote Counts */}
-      <h2>Vote Counts</h2>
-      <ul>
-        {voteCounts.map(([candidate, count]) => (
-          <li key={candidate}>
-            {candidate}: {count}
-          </li>
-        ))}
-      </ul>
+      <section className="vote-counts">
+        <h2>Current Vote Counts</h2>
+        {isLoading.voteCounts ? (
+          <p>Loading vote counts...</p>
+        ) : voteCounts.length === 0 ? (
+          <p>No votes counted yet</p>
+        ) : (
+          <ul>
+            {voteCounts.map(([candidate, count]) => (
+              <li key={candidate}>
+                {candidate}: {count} votes
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      {/* Voting Results - Bar Chart */}
-      <h2>Voting Results</h2>
-      {voteCounts.length > 0 ? (
-        <Bar data={chartData} options={chartOptions} />
-      ) : (
-        <p>Loading results...</p>
-      )}
+      {/* Voting Results Chart */}
+      <section className="voting-results">
+        <h2>Voting Results Visualization</h2>
+        {voteCounts.length > 0 ? (
+          <Bar data={chartData} options={chartOptions} />
+        ) : (
+          <p>Not enough data to generate chart</p>
+        )}
+      </section>
     </main>
   );
 }
