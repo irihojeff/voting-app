@@ -1,63 +1,66 @@
 # Decentralized Voting App
 
-A decentralized voting application built for the December24 ICP Rwanda Hackathon. This project demonstrates how blockchain technology can provide a secure, transparent, and tamper-proof voting system, leveraging the Internet Computer Protocol (ICP).
+This decentralized voting app leverages blockchain technology to revolutionize the voting process. Designed for transparency, security, and accessibility, it eliminates the inefficiencies of traditional voting systems.
 
-## Features
-- **Cast Votes:** Users can vote for candidates securely.
-- **Real-Time Results:** View the live vote count displayed using a bar chart.
-- **Admin Controls:** Admin can open or close voting sessions.
-- **Blockchain Integration:** Fully decentralized with data stored on ICP.
+## **Features**
+- Secure, transparent voting
+- Accessible from anywhere
+- Cost-efficient and eco-friendly
+- Instant result tallying
 
-## How It Works
-1. **Vote Casting:** Each user casts their vote using their unique ID.
-2. **Vote Counting:** Votes are tallied automatically and displayed.
-3. **Transparency:** All votes are stored immutably on the blockchain.
+## **Technology Stack**
+- **Motoko**: Backend logic
+- **React**: Frontend interface
+- **ICP Blockchain**: Decentralized infrastructure
 
-## Technologies Used
-- **Frontend:** React.js
-- **Backend:** Motoko on the Internet Computer
-- **Styling:** CSS for responsive design
-- **Data Visualization:** Bar chart (e.g., Chart.js)
+## **Getting Started**
 
-## Installation
-
-### Prerequisites
+### **Prerequisites**
 Ensure you have the following installed:
-- [Node.js](https://nodejs.org/)
-- [dfx SDK](https://internetcomputer.org/docs/current/developer-docs/setup/install/)
-- [Git](https://git-scm.com/)
+- Node.js
+- DFX SDK (Internet Computer SDK)
 
-
-### Steps
+### **Installation**
 1. Clone the repository:
-     git clone https://github.com/irihojeff/voting-app.git
+   ```bash
+   git clone https://github.com/irihojeff/voting-app.git
    cd voting-app
-3. Install dependencies:
+   ```
+2. Start the local Internet Computer replica:
+   ```bash
+   dfx start --background
+   ```
+3. Deploy the backend canisters:
+   ```bash
+   dfx deploy
+   ```
+4. Install frontend dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
+5. Start the frontend:
+   ```bash
+   npm start
+   ```
 
-npm install
+## **How It Works**
+1. **Admin Features**: Add candidates and launch voting.
+2. **Voter Actions**: Users cast their votes securely.
+3. **Blockchain**: Ensures tamper-proof recordkeeping.
+4. **Results**: Instantly tallied and displayed transparently.
 
-3.Start the Internet Computer local replica:
+## **Future Plans**
+- Implementing biometric authentication for enhanced security.
+- Expanding to mobile platforms for increased accessibility.
+- Integrating IoT devices for seamless voting experiences.
 
-dfx start
+## **Contributing**
+Contributions are welcome! Please fork the repository and create a pull request for review.
 
-4.Deploy the backend canisters:
+## **License**
+This project is licensed under the MIT License.
 
-dfx deploy
-
-Run the frontend:
-
-npm start
-Demo
-(https://drive.google.com/file/d/1UpMsDVePjU3vgGOsRpITRj51qBd3m0FW/view?usp=sharing)
-
-Challenges Faced
-Initial bugs in vote counting logic.
-Tight deadlines for UI enhancements and Git integration.
-Future Scope
-Add multi-factor authentication for user ID verification.
-Extend admin controls to manage user roles dynamically.
-Enhance UI for a better user experience.
-Contributors
-Iriho Japhet, 
-Nyishimente Lois
- 
+## **Acknowledgments**
+- ICP Community for guidance and resources.
+- Transparency advocates inspiring secure elections.
